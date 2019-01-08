@@ -111,14 +111,14 @@ with open(multitwin_infile, mode='w') as multi_twin_outfile:
     for i in range(0, len(unique_species)):
         if unique_species[i]:
             multi_twin_outfile.write('%s\t%s\n' % (unique_species[i], args.family_name))
-outfile.close()
+multi_twin_outfile.close()
 
 spe_seq_file = os.path.join(args.isf_dir, 'species_seq_relationships.csv')
 with open(spe_seq_file, mode='w') as spe_seq_outfile:
     spe_seq_outfile.write('species\tsequence_id\n')
     for i in range(0, len(id)):
         spe_seq_outfile.write('%s\t%s\n' % (species[i], id[i]))
-outfile.close()
+spe_seq_outfile.close()
 
 ######################################################################
 # Turn species name into tx id #######################################
