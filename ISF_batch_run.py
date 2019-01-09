@@ -157,7 +157,7 @@ for i in range(0, len(fa_paths)):
         general_log.critical("The following error has been produced for this query:\n%s" % ISF_err)
     else:
         general_log.info("Gene family successfully created in %s" %
-                         time.strftime("H:%M:%S", time.gmtime(elapsed_time)))
+                         time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
         # create a symbolic link of the comprehensive gene family into the summary directory
         summary_files = glob(os.path.join(curr_outdir, "sequence_found_and_bases.faa*"))
         for f in summary_files:
