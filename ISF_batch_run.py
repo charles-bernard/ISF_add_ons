@@ -80,13 +80,13 @@ args = parser.parse_args()
 #####################################################
 # SETUP #############################################
 #####################################################
-# Read list of path to input fasta and db
+# Read list of paths to input fasta and db
 fa_paths = read_list_of_paths(args.list_fa)
 db_paths = read_list_of_paths(args.list_db)
 # Initialize logfile
 general_log = create_logger('general_log', os.path.join(args.output_dir, "ISF_batch.log"))
 # Create a summary directory that will eventually store all the gene families
-summary_dir = os.path.join(args.output_dir, "00_summary_dir")
+summary_dir = os.path.join(args.output_dir, "00_summary")
 os.makedirs(summary_dir, exist_ok=True)
 
 #####################################################
@@ -152,7 +152,7 @@ for i in range(0, len(fa_paths)):
     else:
         general_log.info("Gene family successfully created in %s" %
                          time.strftime("H:%M:%S", time.gmtime(elapsed_time)))
-        # create a symlink af the comprehensive gene family into the summary directory
+        # create a symbolic link of the comprehensive gene family into the summary directory
         summary_files = glob(os.path.join(curr_outdir, "sequence_found_and_bases.faa*"))
         for f in summary_files:
             os.symlink(f, os.path.join(summary_dir, fa_name + os.path.splitext(f)[1]))
