@@ -1,5 +1,6 @@
 #!/usr/local/bin/python3.5
 
+
 import argparse
 import logging
 import os
@@ -37,6 +38,24 @@ def create_logger(name, filename):
     # Add the handlers to the logger
     logger.addHandler(handler)
     return logger
+
+
+def create_command(args):
+    cmd = 'python3.5 \"%s\" -query \"%s\" -db_fa \"%s\" '\
+          '-th %s -run %s -pident_thr %s -cov_thr %s -eval_thr %s '\
+          '-min_size %s -max_size %s -test_all_chain %s '\
+          '-mkdb_ %s -faa_split %s -wd %s' % \
+          (args.isf_path, curr_fa, curr_db,
+           args.th, args.run, args.pident_thr, args.cov_thr, args.eval_thr,
+           args.min_size, args.max_size, args.test_all_chain,
+           args.mkdb_, args.faa_split, curr_outdir)
+    if args.nr_db:
+        cmd = "%s -nr_db %s" % (cmd, args.nr_db)
+    if args.diamond:
+        cmd = "%s -diamond %s" % (cmd, args.diamond)
+    else:
+        cmd = "%s -blast_ %s" % (cmd, args.blast_)
+    return cmd
 
 
 parser = argparse.ArgumentParser(description='This script runs several instances of ISF')
@@ -116,20 +135,7 @@ for i in range(0, len(fa_paths)):
     current_log = create_logger('current_log', os.path.join(curr_outdir, "ISF.log"))
 
     # define ISF command line
-    cmd = 'python3.5 \"%s\" -query \"%s\" -db_fa \"%s\" '\
-          '-th %s -run %s -pident_thr %s -cov_thr %s -eval_thr %s '\
-          '-min_size %s -max_size %s -test_all_chain %s '\
-          '-mkdb_ %s -faa_split %s -wd %s' % \
-          (args.isf_path, curr_fa, curr_db,
-           args.th, args.run, args.pident_thr, args.cov_thr, args.eval_thr,
-           args.min_size, args.max_size, args.test_all_chain,
-           args.mkdb_, args.faa_split, curr_outdir)
-    if args.nr_db:
-        cmd = "%s -nr_db %s" % (cmd, args.nr_db)
-    if args.diamond:
-        cmd = "%s -diamond %s" % (cmd, args.diamond)
-    else:
-        cmd = "%s -blast_ %s" % (cmd, args.blast_)
+    cmd = create_command(args)
     current_log.info(cmd)
 
     # run isf, compute time elapsed, and log everything !
