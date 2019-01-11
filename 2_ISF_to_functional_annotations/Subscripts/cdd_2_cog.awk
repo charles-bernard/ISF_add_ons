@@ -4,11 +4,13 @@
 BEGIN {
 	FS="(\t)";
 	file_idx = 0;
-	toto = 0;
 
+	cog_nb_letters["NA"] = 1;
+	cog_letter["NA"][0] = "[X]";
 	one_letter[0] = "[X]"
 	cog_supercat["[X]"] = "NO COG ASSOCIATED";
 	cog_cat["[X]"] = "No COG associated";
+	cdd_description["NA"] = "NA";
 
  	k = 0;
  	l = 1;
@@ -83,13 +85,17 @@ END {
 		curr_seq = seq_id[i];
 		curr_cdd = cdd_id[i];
 
+		if(!curr_cdd) {
+			curr_cdd = "NA";
+		}
+
 		if (!cdd_cog[curr_cdd]) {
-			cdd_cog[curr_cdd] = "X";
+			cdd_cog[curr_cdd] = "NA";
 		}
 		curr_cdd_description = cdd_description[curr_cdd];
 
 		curr_cog = cdd_cog[curr_cdd];
-		curr_cog_nb_letters = cog_nb_letters[cog_id];
+		curr_cog_nb_letters = cog_nb_letters[curr_cog];
 
 		for(j = 0; j < curr_cog_nb_letters; j++) {
 			curr_cog_letter = cog_letter[curr_cog][j];
@@ -106,6 +112,8 @@ END {
 				occ[curr_cog_letter] = occ[curr_cog_letter] + 1;
 			}
 		}
+
+		print cdd_cog["NA"] curr_cog " " curr_cog_nb_letters " " curr_cog_letter
 	}
 
 	print "#COG Letter\tOccurence percentage in the family of genes\tCOG Supercategory\tCOG Category" \

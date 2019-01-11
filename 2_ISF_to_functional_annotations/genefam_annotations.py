@@ -34,6 +34,32 @@ def run_rpsblast(args):
         print(msg)
 
 
+def concat_seq_with_no_matches_to_rspblast_out(args, script_dir):
+    cmd = 'awk -f \"%s\" \"%s\" \"%s\" > \"%s\"' %\
+          (os.path.join(script_dir, 'Subscripts', 'left_join_fa_cdd.awk'),
+           args.fa, os.path.join(args.outdir, 'rpsblast.out'),
+           os.path.join(args.outdir, 'comprehensive_rpsblast.out'))
+
+    logging.info('Concatenate sequences that have no cdd matches with rpsblast output : %s' % cmd)
+    print('Concatenate sequences that have no cdd matches with rpsblast output : %s' % cmd)
+
+    start_time = time.time()
+    concat_result = subprocess.Popen(args=cmd, shell=True,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    elapsed_time = time.time() - start_time
+
+    concat_out, concat_err = concat_result.communicate()
+    if concat_err:
+        err = "* concatenation generated the following error:\n%s" % concat_err
+        logging.critical(err)
+        print(err)
+    else:
+        msg = '* concatenation successfully ran in %s' % \
+              time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+        logging.info(msg)
+        print(msg)
+
+
 # def create_cdd2cog_command(script_dir, rpsblast_outfile):
 #     # get paths of sourced files
 #     cdd2cog_path = os.path.join(script_dir, 'dependencies', 'cdd2cog.pl')
@@ -54,7 +80,7 @@ def convert_cddid_to_cogid(args, script_dir):
            os.path.join(args.outdir, 'COG_summary_output.txt'),
            os.path.join(script_dir, 'Subscripts', 'cdd_2_cog.awk'),
            os.path.join(script_dir, '../required_files', 'fun.txt'),
-           os.path.join(args.outdir, 'rpsblast.out'),
+           os.path.join(args.outdir, 'comprehensive_rpsblast.out'),
            os.path.join(script_dir, '../required_files', 'cddid.tbl'),
            os.path.join(script_dir, '../required_files', 'whog'))
 
@@ -123,6 +149,8 @@ os.chdir(args.db)
 # RUN RPSBLAST+ ##########################
 ##########################################
 run_rpsblast(args)
+concat_seq_with_no_matches_to_rspblast_out(args, script_dir)
+
 
 ##########################################
 # CONVERT CDD to COG #####################
