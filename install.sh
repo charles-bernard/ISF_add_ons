@@ -3,7 +3,7 @@
 ISF_ADDONS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
 
 # Change owner
-chown -R $USER:$USER $ISF_ADDONS_DIR
+# chown -R $USER:$USER $ISF_ADDONS_DIR
 
 # checking Python version
 if [[ $(which python3) != "/usr/bin/python3" ]]; then
@@ -49,7 +49,7 @@ if (( $parallel_version < 2018 )); then
 fi
 
 # install cdd2cog
-wget https://raw.githubusercontent.com/aleimba/bac-genomics-scripts/master/cdd2cog/cdd2cog.pl
+# wget https://raw.githubusercontent.com/aleimba/bac-genomics-scripts/master/cdd2cog/cdd2cog.pl
 
 cd ../
 
