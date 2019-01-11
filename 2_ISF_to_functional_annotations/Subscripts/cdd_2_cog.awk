@@ -4,6 +4,7 @@
 BEGIN {
 	FS="(\t)";
 	file_idx = 0;
+	toto = 0;
 
 	one_letter[0] = "[X]"
 	cog_supercat["[X]"] = "NO COG ASSOCIATED";
@@ -65,9 +66,14 @@ file_idx == 3 && $2 ~ /^COG/ {
 ####################################
 # retrieve correspondance between
 # cog_id and cog_letter
-file_idx == 4 && $0 ~ /^\[[A-Z]\]/ {
+file_idx == 4 && $0 ~ /^\[[A-Z]+\]/ {
 	split($0, fields, " ");
-	cog_letter[fields[2]] = fields[1];
+	cog_id = fields[2];
+	cog_letters = fields[1];
+	cog_nb_letters[cog_id] = length(cog_letters) - 2 # because 2 brackets
+	for(i = 0; i < cog_nb_letters[cog_id]; i++) {
+		cog_letter[cog_id][i] = "[" substr(cog_letters, 2 + i, 1) "]"
+	}
 }
 
 END {
@@ -83,29 +89,34 @@ END {
 		curr_cdd_description = cdd_description[curr_cdd];
 
 		curr_cog = cdd_cog[curr_cdd];
-		curr_cog_letter = cog_letter[curr_cog];
-		curr_cog_cat = cog_cat[curr_cog_letter];
-		curr_cog_supercat = cog_supercat[curr_cog_letter];
+		curr_cog_nb_letters = cog_nb_letters[cog_id];
 
-		print curr_seq "\t" curr_cog_supercat "\t" curr_cog_letter "\t" \
-			curr_cog_cat "\t" curr_cdd "\t" curr_cdd_description \
-			> comprehensive_out
+		for(j = 0; j < curr_cog_nb_letters; j++) {
+			curr_cog_letter = cog_letter[curr_cog][j];
+			curr_cog_cat = cog_cat[curr_cog_letter];
+			curr_cog_supercat = cog_supercat[curr_cog_letter];
 
-		if(! occ[curr_cog_letter]) {
-			occ[curr_cog_letter] = 1;
-		} else {
-			occ[curr_cog_letter]++;
+			print curr_seq "\t" curr_cog_supercat "\t" curr_cog_letter "\t" \
+				curr_cog_cat "\t" curr_cdd "\t" curr_cdd_description \
+				> comprehensive_out
+
+			if(!occ[curr_cog_letter]) {
+				occ[curr_cog_letter] = 1;
+			} else {
+				occ[curr_cog_letter] = occ[curr_cog_letter] + 1;
+			}
 		}
 	}
 
-	print "#COG Letter\tOccurence in the family\tCOG Supercategory\tCOG Category" \
+	print "#COG Letter\tOccurence percentage in the family of genes\tCOG Supercategory\tCOG Category" \
 		> summary_out;
 	for(i = 0; i < l; i++) {
 		curr_letter = one_letter[i];
-		if (! occ[curr_letter]) {
-			occ[curr_letter] = 0;
+		if(!occ[curr_letter]) {
+			perc = 0;
+		} else {
+			perc = occ[curr_letter] / k * 100;
 		}
-		print curr_letter "\t" occ[curr_letter] "\t" cog_supercat[curr_letter] "\t" \
-			cog_cat[curr_letter] > summary_out;
+		printf("%s\t%.2f%\t%s\t%s\n", curr_letter, perc, cog_supercat[curr_letter], cog_cat[curr_letter]) > summary_out;
 	}
 }
