@@ -117,7 +117,7 @@ END {
 		print cdd_cog["NA"] curr_cog " " curr_cog_nb_letters " " curr_cog_letter
 	}
 
-	print "#COG Letter\tOccurence percentage in the family of genes\tCOG Supercategory\tCOG Category" \
+	print "#COG Letter\tOccurence % in the family of genes\tCOG Supercategory\tCOG Category" \
 		> summary_out;
 	for(i = 0; i < l; i++) {
 		curr_letter = one_letter[i];
@@ -126,6 +126,6 @@ END {
 		} else {
 			perc = occ[curr_letter] / k * 100;
 		}
-		printf("%s\t%.2f%\t%s\t%s\n", curr_letter, perc, cog_supercat[curr_letter], cog_cat[curr_letter]) > summary_out;
+		printf("%s\t%.2f\t%s\t%s\n", curr_letter, perc, cog_supercat[curr_letter], cog_cat[curr_letter]) > summary_out;
 	}
 }
