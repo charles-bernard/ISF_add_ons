@@ -23,8 +23,8 @@ FNR == 1 {
 ####################################
 # FIRST FILE: COG ONE LETTER CODE ##
 ####################################
-# Retrieve the description associated
-# with the letter
+# Retrieve the biological process
+# associated with the COG uniletter
 file_idx == 1 && $0 ~ /^[A-Z]/ {
 	curr_super_category = $0;
 }
@@ -44,8 +44,8 @@ file_idx == 1 && $0 ~ / \[[A-Z]\]/ {
 ####################################
 # SECOND FILE: OUTPUT OF RPS BLAST #
 ####################################
-# Retrieve seq id and corresponding
-# cdd id
+# Retrieve sequence id and its 
+# corresponding cdd id(s)
 file_idx == 2 && $0 !~ /^#/ {
 	seq_id[k] = $1;
 	split($2, cdd_tag, "|");
@@ -59,15 +59,16 @@ file_idx == 2 && $0 !~ /^#/ {
 # retrieve correspondance between
 # cdd_id and cog_id
 file_idx == 3 && $2 ~ /^COG/ {
-	cdd_cog[$1]=$2;
-	cdd_description[$1] = $4;
+	cdd = $1;
+	cdd_cog[cdd] = $2;
+	cdd_description[cdd] = $4;
 }
 
 ####################################
 # FOURTH FILE: COG ID 2 COG LETTER #
 ####################################
 # retrieve correspondance between
-# cog_id and cog_letter
+# cog_id and cog_letter(s)
 file_idx == 4 && $0 ~ /^\[[A-Z]+\]/ {
 	split($0, fields, " ");
 	cog_id = fields[2];
