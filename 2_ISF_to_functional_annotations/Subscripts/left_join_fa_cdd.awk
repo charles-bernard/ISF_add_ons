@@ -27,6 +27,7 @@ file_idx == 1 && $0 ~ /^>/ {
 # cdd id
 file_idx == 2 && $0 !~ /^#/ {
 	line[k] = $0;
+	seq_id = $1;
 	is[seq_id] = 1; 
 	k++;
 }
