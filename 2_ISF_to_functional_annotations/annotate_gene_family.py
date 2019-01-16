@@ -6,13 +6,14 @@ import logging
 import os
 import sys
 import time
+import re
 
 
-def run_rpsblast(args):
+def run_rpsblast(args, fa, fa_basename):
     cmd = 'rpsblast+ -query \"%s\" -db %s '\
           '-out %s -evalue %f -outfmt 6' %\
-          (args.fa, os.path.basename(os.path.normpath(args.db)).split("_")[0],
-           os.path.join(args.outdir, 'rpsblast.out'), args.e_value)
+          (fa, os.path.basename(os.path.normpath(args.db)).split("_")[0],
+           os.path.join(args.outdir, fa_basename + '_rpsblast.out'), args.e_value)
 
     logging.info('Executing rpsblast+ as: %s' % cmd)
     print('Executing rpsblast+ as: %s' % cmd)
@@ -34,11 +35,11 @@ def run_rpsblast(args):
         print(msg)
 
 
-def concat_seq_with_no_matches_to_rspblast_out(args, script_dir):
+def concat_seq_with_no_matches_to_rspblast_out(args, fa, fa_basename, script_dir):
     cmd = 'awk -f \"%s\" \"%s\" \"%s\" > \"%s\"' %\
           (os.path.join(script_dir, 'Subscripts', 'left_join_fa_cdd.awk'),
-           args.fa, os.path.join(args.outdir, 'rpsblast.out'),
-           os.path.join(args.outdir, 'comprehensive_rpsblast.out'))
+           fa, os.path.join(args.outdir, fa_basename + '_rpsblast.out'),
+           os.path.join(args.outdir, fa_basename + '_comprehensive_rpsblast.out'))
 
     logging.info('Concatenate sequences that have no cdd matches with rpsblast output : %s' % cmd)
     print('Concatenate sequences that have no cdd matches with rpsblast output : %s' % cmd)
@@ -60,27 +61,14 @@ def concat_seq_with_no_matches_to_rspblast_out(args, script_dir):
         print(msg)
 
 
-# def create_cdd2cog_command(script_dir, rpsblast_outfile):
-#     # get paths of sourced files
-#     cdd2cog_path = os.path.join(script_dir, 'dependencies', 'cdd2cog.pl')
-#     cddid_path = os.path.join(script_dir, 'required_files', 'cddid.tbl')
-#     whog_path = os.path.join(script_dir, 'required_files', 'whog')
-#     fun_path = os.path.join(script_dir, 'required_files', 'fun.txt')
-#     cmd = 'perl \"%s\" -r \"%s\" -c \"%s\" '\
-#           '-f \"%s\" -w \"%s\" -a' %\
-#           (cdd2cog_path, rpsblast_outfile, cddid_path,
-#            fun_path, whog_path)
-#     return cmd
-
-
-def convert_cddid_to_cogid(args, script_dir):
+def convert_cddid_to_cogid(args, fa_basename, script_dir):
     cmd = 'awk -v comprehensive_out=\"%s\" -v summary_out=\"%s\" '\
           '-f \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"' %\
           (os.path.join(args.outdir, 'COG_comprehensive_output.txt'),
            os.path.join(args.outdir, 'COG_summary_output.txt'),
            os.path.join(script_dir, 'Subscripts', 'cdd_2_cog.awk'),
            os.path.join(script_dir, '../required_files', 'fun.txt'),
-           os.path.join(args.outdir, 'comprehensive_rpsblast.out'),
+           os.path.join(args.outdir, fa_basename + '_comprehensive_rpsblast.out'),
            os.path.join(script_dir, '../required_files', 'cddid.tbl'),
            os.path.join(script_dir, '../required_files', 'whog'))
 
@@ -108,10 +96,15 @@ parser = argparse.ArgumentParser(
     description='This script runs rpsblast with the ISF output gene family in fasta '
                 'against COG db in order to assign functions to all the representative '
                 'sequences of the family')
-parser.add_argument('-o', dest="outdir", type=str,
+parser.add_argument('-o', '--output_dir', dest="outdir", type=str,
                     help='specify the path to the output directory')
-parser.add_argument('-i', dest='fa', type=str,
-                    help='specify the path to the fasta file corresponding to the gene family')
+parser.add_argument('--input_file', dest='fa_file', type=str,
+                    help='specify the path to the fasta file corresponding to the gene family '
+                         '(the filename will be used to name the gene family)')
+parser.add_argument('--input_dir', dest='fa_dir', type=str,
+                    help='(alternative to --input_file), specify the path to the directory '
+                         'that contains several gene families in fasta (the filename of '
+                         'each fasta will be used to name the corresponding gene family)')
 parser.add_argument('--db', dest='db', type=str,
                     help='specify the path to the target database. '
                          'You may want to download the Conserved Domain Database '
@@ -120,7 +113,9 @@ parser.add_argument('--db', dest='db', type=str,
                          '(COG, Pfam, Tigr etc...) e.g: -db \"~/cdd/little_endian/COG_LE/\"')
 parser.add_argument('--evalue', dest='e_value', type=float,
                     help='Expectation value (E) threshold for saving hits', default=0.1)
-parser.add_argument('--cog_statistics', dest='cog_stats', action='store_true', default=False)
+parser.add_argument('--cog_enrichment', dest='cog_enrich', action='store_true', default=False,
+                    help='weither you want to compute the enrichment in each COG functional category '
+                         'of the gene family (only relevant if --db was set to */COG_LE/)')
 args = parser.parse_args()
 
 
@@ -145,35 +140,24 @@ logging.info('Changing into %s' % args.db)
 print('Changing into %s' % args.db)
 os.chdir(args.db)
 
-##########################################
-# RUN RPSBLAST+ ##########################
-##########################################
-run_rpsblast(args)
-concat_seq_with_no_matches_to_rspblast_out(args, script_dir)
-
-
-##########################################
-# CONVERT CDD to COG #####################
-##########################################
-if(args.cog_stats):
-    convert_cddid_to_cogid(args, script_dir)
+# Build the list of paths to fasta
+fasta_files = list()
+if args.fa_file:
+    fasta_files.append(args.fa_file)
+else:
+    dir_files = os.listdir(args.fa_dir)
+    for dir_file in dir_files:
+        if re.search(r'\.fa(a)?(sta)?$', dir_file):
+            fasta_files.append(os.path.abspath(dir_file))
 
 ##########################################
-# RUN CDD2COG (DEPRECATED) ###############
+# RUN RPSBLAST+ & CONVERT CDD TO COG #####
 ##########################################
-# os.chdir(args.outdir)
-# cmd = create_cdd2cog_command(script_dir, os.path.join(args.outdir, "rpsblast.out"))
-# logging.info('Executing cdd2cog as: %s\n' % cmd)
-# print('Executing cdd2cog as: %s' % cmd)
-#
-# cdd2cog_result = subprocess.Popen(args=cmd, shell=True,
-#                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-# for line in cdd2cog_result.stdout:
-#     print(line)
-#     logging.info(line)
-# cdd2cog_out, cdd2cog_err = cdd2cog_result.communicate()
-#
-# if cdd2cog_err:
-#     err = "* cdd2cog generated the following error:\n%s\n" % cdd2cog
-#     logging.critical(err)
-#     print(err)
+for fa in fasta_files:
+    fa_basename = os.path.basename(fa).split(".")[0]
+    run_rpsblast(args, fa, fa_basename)
+    concat_seq_with_no_matches_to_rspblast_out(args, fa, fa_basename, script_dir)
+    if args.cog_enrich:
+        convert_cddid_to_cogid(args, fa_basename, script_dir)
+
+
