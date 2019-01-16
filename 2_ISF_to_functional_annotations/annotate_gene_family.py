@@ -65,7 +65,7 @@ def convert_cddid_to_cogid(args, fa_basename, script_dir):
     cmd = 'awk -v comprehensive_out=\"%s\" -v summary_out=\"%s\" '\
           '-f \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"' %\
           (os.path.join(args.outdir, 'COG_comprehensive_output.txt'),
-           os.path.join(args.outdir, 'COG_summary_output.txt'),
+           os.path.join(args.outdir, 'COG_enrichment.txt'),
            os.path.join(script_dir, 'Subscripts', 'cdd_2_cog.awk'),
            os.path.join(script_dir, '../required_files', 'fun.txt'),
            os.path.join(args.outdir, fa_basename + '_comprehensive_rpsblast.out'),
