@@ -2,8 +2,6 @@
 
 ISF_ADDONS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
 
-# Change owner
-# chown -R $USER:$USER $ISF_ADDONS_DIR
 
 # checking Python version
 if [[ $(which python3) != "/usr/bin/python3" ]]; then
@@ -51,6 +49,18 @@ fi
 # install cdd2cog
 # wget https://raw.githubusercontent.com/aleimba/bac-genomics-scripts/master/cdd2cog/cdd2cog.pl
 
+# R packages
+if ! [ -x "$(command -v Rscript)" ]; then
+	apt-get install littler;
+fi
+# Rscript -e 'if (!requireNamespace("devtools", quietly = TRUE)) { install.packages("devtools") }';
+Rscript -e 'if (!requireNamespace("stats", quietly = TRUE)) { install.packages("stats") }';
+Rscript -e 'if (!requireNamespace("data.table", quietly = TRUE)) { install.packages("data.table") }';
+Rscript -e 'if (!requireNamespace("BiocManager", quietly = TRUE)) { install.packages("BiocManager") }';
+Rscript -e 'if (!requireNamespace("ConsensusClusterPlus", quietly = TRUE)) { devtools::install_github("renzhonglu/ConsensusClusterPlus") }';
+Rscript -e 'if (!requireNamespace("ComplexHeatmap", quietly = TRUE)) { devtools::install_github("jokergoo/ComplexHeatmap", ref="devel") }';
+
+
 cd ../
 
 #####################################
@@ -68,3 +78,5 @@ wget -q ftp://ftp.ncbi.nlm.nih.gov/pub/COG/COG/fun.txt
 wget -q ftp://ftp.ncbi.nlm.nih.gov/pub/COG/COG/whog
 
 cd ../
+
+chmod -r ugo+rwx "$ISF_ADDONS_DIR";
