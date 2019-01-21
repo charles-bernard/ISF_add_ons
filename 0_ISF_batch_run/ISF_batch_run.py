@@ -164,3 +164,6 @@ for i in range(0, len(fa_paths)):
             os.symlink(f, os.path.join(summary_dir, fa_name + os.path.splitext(f)[1]))
 
     sys.stdout.flush()
+    current_log.shutdown()
+
+general_log.shutdown()
