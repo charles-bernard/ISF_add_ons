@@ -105,7 +105,7 @@ unique_species = sorted(set(species))
 ######################################################################
 # Write retrieved lists of species and ids into a tabular file #######
 ######################################################################
-multi_twin_infile = os.path.join(args.isf_dir, 'MultiTwin_edges.csv')
+multi_twin_infile = os.path.join(args.isf_dir, args.family_name + '_MultiTwin_edges.csv')
 with open(multitwin_infile, mode='w') as multi_twin_outfile:
     multi_twin_outfile.write('species\tgene_family\n')
     for i in range(0, len(unique_species)):
@@ -113,7 +113,7 @@ with open(multitwin_infile, mode='w') as multi_twin_outfile:
             multi_twin_outfile.write('%s\t%s\n' % (unique_species[i], args.family_name))
 multi_twin_outfile.close()
 
-spe_seq_file = os.path.join(args.isf_dir, 'species_seq_relationships.csv')
+spe_seq_file = os.path.join(args.isf_dir, args.family_name + 'species_seq_relationships.csv')
 with open(spe_seq_file, mode='w') as spe_seq_outfile:
     spe_seq_outfile.write('species\tsequence_id\n')
     for i in range(0, len(id)):
