@@ -93,7 +93,7 @@ names(cluster_colors) <- sort(unique(partition));
 column_ha <- HeatmapAnnotation('Family clusters' = as.character(partition),
                                col = list('Family clusters' = cluster_colors),
                                annotation_legend_param = 
-                                 list(nrow = 1, egend_direction = "horizontal"));
+                                 list(nrow = 1, legend_direction = "horizontal"));
 
 pdf(file.path(output_dir, "heatmap.pdf"),
     width = 10,
