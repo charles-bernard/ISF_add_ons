@@ -66,7 +66,7 @@ def species_taxons_to_tax_info(list_taxons):
             list_lineages.append(ncbi.get_lineage(list_taxons[i]))
             list_ranks.append(ncbi.get_rank(list_lineages[-1]))
         else:
-            list_lineages.append('[NA]')
+            list_lineages.append('NA')
             list_ranks.append([{'NA': 'NA'}])
     return [list_lineages, list_ranks]
 
@@ -109,44 +109,55 @@ def taxon_to_leaves(list_leaves, list_lineage):
         curr_lineage = list_lineage[i]
         for j in range(0, len(curr_lineage)):
             if curr_lineage[j] in taxon_to_leaf:
-                taxon_to_leaf[curr_lineage[j]].append(list_leaves[i])
+                taxon_to_leaf[curr_lineage[j]] += [list_leaves[i]]
             else:
                 taxon_to_leaf[curr_lineage[j]] = [list_leaves[i]]
     return taxon_to_leaf
 
 
-def find_best_matches(family_dict, taxon_to_leaf, hist_df, lin_thresh = 2):
+def find_best_matches(family_dict, taxon_to_leaves, hist_df, lin_thresh = 2):
     family_names = family_dict['taxon'].keys()
     matched_leaves = dict()
     unanchored_taxons = dict()
-    for i in range(0, family_names):
+    for i in range(0, len(family_names)):
         # Consider the current family of genes and access the
         # lineages of all its representative species
-        matched_leaves[family_names[i]] = list()
+        matched_leaves[family_names[i]] = dict()
+        matched_leaves[family_names[i]]['NA'] = list()
         unanchored_taxons[family_names[i]] = list()
         fam_lineages = family_dict['lineage'][family_names[i]]
         for j in range(0, len(fam_lineages)):
             # Consider the lineage of the current species in the family
             curr_lineage = fam_lineages[j]
-            for k in range(len(curr_lineage)-1, lin_thresh, 1):
-                # Visit the lineage from descendants to ascendants
-                # until reaching the threshold (a threshold is set because
-                # we don't want a species to be projected in all bacteria for instance)
-                if curr_lineage[k] in taxon_to_leaf:
-                    # if descendant is found in one or several leaves,
-                    # then retrieves the name of these leaves and stop
-                    # exploring the lineage
-                    curr_matched_leaves = taxon_to_leaf[curr_lineage[k]]
-                    matched_leaves[family_names[i]].append(curr_matched_leaves)
-            if not matched_leaves[family_names[i]]:
-                # If no matched leaves for the current lineage, then add the species
-                # to the list of unanchored species of the current family
-                unanchored_taxons.append(family_dict['taxon'][family_names[i]])
-                hist_df[family_names[i]]['UNANCHORED'] += 1
+            if curr_lineage != 'NA':
+                matched_leaves[family_names[i]][curr_lineage[-1]] = list()
+                for k in range(len(curr_lineage)-1, lin_thresh, -1):
+                    # Visit the lineage from descendants to ascendants until reaching the
+                    # threshold rank (a threshold is set because we don't want a species
+                    # to be projected in all bacteria leaves for instance)
+                    if curr_lineage[k] in taxon_to_leaves:
+                        # if descendant is found in one or several leaves,
+                        # then retrieves the name of these leaves and stop
+                        # exploring the lineage
+                        curr_matched_leaves = taxon_to_leaves[curr_lineage[k]]
+                        matched_leaves[family_names[i]][curr_lineage[-1]] += curr_matched_leaves
+                        break
+                if not matched_leaves[family_names[i]][curr_lineage[-1]]:
+                    # If no matched leaves for the current lineage, then add the species
+                    # to the list of unanchored species of the current family
+                    unanchored_taxons[family_names[i]] += [curr_lineage[-1]]
+                    hist_df[family_names[i]]['UNANCHORED'] += 1
+                else:
+                    # Update the occurrence matrix of each leaf for the current
+                    # family of gene. If one species of the family is projected in several
+                    # leaves, divide the occurrence of these leaves by the number of matches
+                    n = len(curr_matched_leaves)
+                    for l in range(0, n):
+                        hist_df[family_names[i]][curr_matched_leaves[l].name] += 1 / float(n)
             else:
-                n = len(curr_matched_leaves)
-                for l in range(0, n):
-                    hist_df[family_names[i]][curr_matched_leaves[l]] += 1 / float(n)
+                matched_leaves[family_names[i]]['NA'] += ['NA']
+                unanchored_taxons[family_names[i]] += ['NA']
+                hist_df[family_names[i]]['UNANCHORED'] += 1
     return [hist_df, matched_leaves, unanchored_taxons]
 
 
@@ -188,8 +199,8 @@ taxon_to_leaves_dict = taxon_to_leaves(tree_leaves, tree_dict['lineage'])
 # FIND BEST LEAVES TO ANCHOR EACH SPECIES OF A
 # FAMILY OF GENES IN THE REFERENCE TREE
 # Initialize matrix of count
-df = pd.DataFrame(np.zeros((len(tree_leaves)+1, len(family_names))),
-                  columns=family_names, index=tree_names + ['UNANCHORED'])
-
+hist_df = pd.DataFrame(np.zeros((len(tree_leaves)+1, len(family_names))),
+                       columns=family_names, index=tree_names + ['UNANCHORED'])
+hist_df, matched_leaves, unanchored_taxons = find_best_matches(family_dict, taxon_to_leaves_dict, hist_df)
 
 
