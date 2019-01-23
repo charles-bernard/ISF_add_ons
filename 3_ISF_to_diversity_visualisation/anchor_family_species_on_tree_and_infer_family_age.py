@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3.5
 
-
 import argparse
 import os
 from glob import glob
@@ -214,6 +213,13 @@ hist_df = pd.DataFrame(np.zeros((len(tree_leaves)+1, len(family_names))),
                        columns=family_names, index=tree_names + ['UNANCHORED'])
 hist_df, matched_leaves, unanchored_taxons = \
     find_best_matches(family_dict, taxon_to_leaves_dict, hist_df)
+
+
+# INFER AGE OF THE FAMILY WITH DOLLO PARCIMONY
+unique_leaves = list(set(sum(matched_leaves['CDPS'].values(), [])))
+unique_leaves.remove('NA')
+common_ancestor = tree.get_common_ancestor(unique_leaves)
+
 
 # OUTPUTS
 hist_df = np.floor(hist_df)
