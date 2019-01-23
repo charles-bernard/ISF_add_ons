@@ -64,8 +64,8 @@ def concat_seq_with_no_matches_to_rspblast_out(args, fa, fa_basename, script_dir
 def convert_cddid_to_cogid(args, fa_basename, script_dir):
     cmd = 'awk -v comprehensive_out=\"%s\" -v summary_out=\"%s\" '\
           '-f \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"' %\
-          (os.path.join(args.outdir, 'COG_comprehensive_output.txt'),
-           os.path.join(args.outdir, 'COG_enrichment.txt'),
+          (os.path.join(args.outdir, fa_basename + 'COG_comprehensive_output.txt'),
+           os.path.join(args.outdir, fa_basename + 'COG_enrichment.txt'),
            os.path.join(script_dir, 'Subscripts', 'cdd_2_cog.awk'),
            os.path.join(script_dir, '../required_files', 'fun.txt'),
            os.path.join(args.outdir, fa_basename + '_comprehensive_rpsblast.out'),
@@ -144,17 +144,18 @@ os.chdir(args.db)
 fasta_files = list()
 if args.fa_file:
     fasta_files.append(args.fa_file)
-else:
+elif args.fa_dir:
     dir_files = os.listdir(args.fa_dir)
     for dir_file in dir_files:
         if re.search(r'\.fa(a)?(sta)?$', dir_file):
-            fasta_files.append(os.path.abspath(dir_file))
+            fasta_files.append(os.path.join(args.fa_dir, dir_file))
 
 ##########################################
 # RUN RPSBLAST+ & CONVERT CDD TO COG #####
 ##########################################
 for fa in fasta_files:
     fa_basename = os.path.basename(fa).split(".")[0]
+    print fa
     run_rpsblast(args, fa, fa_basename)
     concat_seq_with_no_matches_to_rspblast_out(args, fa, fa_basename, script_dir)
     if args.cog_enrich:
