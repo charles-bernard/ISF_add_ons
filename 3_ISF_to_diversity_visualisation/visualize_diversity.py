@@ -11,6 +11,9 @@ import pandas as pd
 ncbi = NCBITaxa()
 
 
+######################################################
+# FUNCTIONS TO EXTRACT, CONVERT TAXONOMIC ATTRIBUTES #
+######################################################
 def load_species_entries_of_family(edges_file):
     list_species = list()
     with open(edges_file) as f:
@@ -93,12 +96,14 @@ def load_tax_info_of_families(list_edges_files):
 def load_leaves_entries_of_tree(tree):
     # get address and name of each leaf
     list_leaves = list()
+    list_taxons = list()
     list_names = list()
     for node in tree.traverse():
         if node.is_leaf():
             list_leaves.append(node)
             list_names.append(node.name)
-    return [list_leaves, list_names]
+            list_taxons.append(node.taxon)
+    return [list_leaves, list_names, list_taxons]
 
 
 def taxon_to_leaves(list_leaves, list_lineage):
@@ -107,16 +112,20 @@ def taxon_to_leaves(list_leaves, list_lineage):
     taxon_to_leaf = dict()
     for i in range(0, len(list_leaves)):
         curr_lineage = list_lineage[i]
-        for j in range(0, len(curr_lineage)):
-            if curr_lineage[j] in taxon_to_leaf:
-                taxon_to_leaf[curr_lineage[j]] += [list_leaves[i]]
-            else:
-                taxon_to_leaf[curr_lineage[j]] = [list_leaves[i]]
+        if curr_lineage[0] != 'NA':
+            for j in range(0, len(curr_lineage)):
+                if curr_lineage[j] in taxon_to_leaf:
+                    taxon_to_leaf[curr_lineage[j]] += [list_leaves[i]]
+                else:
+                    taxon_to_leaf[curr_lineage[j]] = [list_leaves[i]]
     return taxon_to_leaf
 
 
+######################################################
+# FUNCTION TO ANCHOR A SPECIES ON TREE NODES #########
+######################################################
 def find_best_matches(family_dict, taxon_to_leaves, hist_df, lin_thresh = 2):
-    family_names = family_dict['taxon'].keys()
+    family_names = list(family_dict['taxon'])
     matched_leaves = dict()
     unanchored_taxons = dict()
     for i in range(0, len(family_names)):
@@ -164,7 +173,6 @@ def find_best_matches(family_dict, taxon_to_leaves, hist_df, lin_thresh = 2):
 ##################################################################
 # MAIN ###########################################################
 ##################################################################
-
 # PARSE ARGUMENTS
 parser = argparse.ArgumentParser(
     description='This script runs rpsblast with the ISF output gene family in fasta '
@@ -173,24 +181,27 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-i', '--input_dir', dest='input_dir', type=str,
                     help='specify that path to a directory that must store the '
                          'Multitwin_edges files of gene families (*_Multitwin_edges.csv)')
+parser.add_argument('-o', '--output_dir', dest='output_dir', type=str,
+                    help='specify that path to the output directory')
 parser.add_argument('-t', '--reference_tree', dest='tree', type=str,
                     help='specify that path to a reference phylogenetic tree in Newick format'
-                         '(the name of each leaf must correspond to a NCBI taxonomic id)')
+                         '(each leaf must have a "taxon" attribute corresponding to its NCBI taxonomic id)')
 args = parser.parse_args()
-
+if not os.path.exists(args.output_dir):
+    os.makedirs(args.output_dir)
 
 # LOAD EDGES FILES
 list_edges_files = glob(os.path.join(args.input_dir, '*MultiTwin_edges.csv'))
 family_dict = load_tax_info_of_families(list_edges_files)
-family_names = family_dict['taxon'].keys()
+family_names = list(family_dict['taxon'])
 
 
 # LOAD REFERENCE TREE
 tree = Tree(args.tree, format=1)
-tree_leaves, tree_names = load_leaves_entries_of_tree(tree)
+tree_leaves, tree_names, tree_taxons = load_leaves_entries_of_tree(tree)
 tree_dict = dict()
 tree_dict['name'], tree_dict['taxon'] = \
-    species_entries_to_names_and_taxid(tree_names)
+    species_entries_to_names_and_taxid(tree_taxons)
 tree_dict['lineage'], tree_dict['ranks'] = \
     species_taxons_to_tax_info(tree_dict['taxon'])
 taxon_to_leaves_dict = taxon_to_leaves(tree_leaves, tree_dict['lineage'])
@@ -201,6 +212,10 @@ taxon_to_leaves_dict = taxon_to_leaves(tree_leaves, tree_dict['lineage'])
 # Initialize matrix of count
 hist_df = pd.DataFrame(np.zeros((len(tree_leaves)+1, len(family_names))),
                        columns=family_names, index=tree_names + ['UNANCHORED'])
-hist_df, matched_leaves, unanchored_taxons = find_best_matches(family_dict, taxon_to_leaves_dict, hist_df)
+hist_df, matched_leaves, unanchored_taxons = \
+    find_best_matches(family_dict, taxon_to_leaves_dict, hist_df)
 
-
+# OUTPUTS
+hist_df = np.floor(hist_df)
+hist_df.to_csv(path_or_buf=os.path.join(args.output_dir, "hist_mat.csv"),
+               sep=",", header=True, index=True)
