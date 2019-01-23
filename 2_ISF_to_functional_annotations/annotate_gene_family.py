@@ -155,7 +155,6 @@ elif args.fa_dir:
 ##########################################
 for fa in fasta_files:
     fa_basename = os.path.basename(fa).split(".")[0]
-    print fa
     run_rpsblast(args, fa, fa_basename)
     concat_seq_with_no_matches_to_rspblast_out(args, fa, fa_basename, script_dir)
     if args.cog_enrich:
