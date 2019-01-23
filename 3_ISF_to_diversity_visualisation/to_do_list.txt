@@ -1,0 +1,17 @@
+TO DO LIST:
+
+Create a "Prepare Tree" Subdirectory achieving the following steps:
+
+1. Create list of nodes to collapse (based on either length or node 
+phylum non redundancy)
+
+2. Create a correspondance tabular files organized as follows:
+<node_collapsed>,<father_internal_node>
+
+3. Prepare label replacements:
+replace node.name by node.phylum
+
+4. Prepare colored ranges for the remaining nodes
+
+Create a script that turn the hist_mat in agreement with 
+correspondance file 2.
