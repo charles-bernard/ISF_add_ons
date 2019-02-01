@@ -44,7 +44,7 @@ eventually plotted to summarize all these information.
 a leaf of the tree. 
 
 * Collapse the comprehensive tree to a lower-level tree, optimal for visualization.
-(leaves that were species would be collapsed into leaves that are, for instance, phylums).
+(For istance, leaves that used to correspond to species would be collapsed into leaves that reflect phylums).
 For each collapsed group of leaves, compute the number of species that have been anchored
 to it for each family of genes. Turn systematically this information to a histogram that
 summarize the distribution of each family of genes along the lower-level tree. Scale the 
