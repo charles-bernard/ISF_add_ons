@@ -30,7 +30,7 @@ a consensus MST and turn it into a phylogenetic tree.
 
 * Given a list of family of genes, run rpsblast with each family as query
 against COG in order to assign COG categories to each sequence of each family.
-Ultimately, COG category enrichment statistics are eventually computed for each family of genes.
+Ultimately, COG category enrichment statistics are computed for each family of genes.
 
 * Take COG enrichment statistics to cluster families of genes according to
 their functional annotations. Clustering is agglomerative and appropriate
