@@ -1,7 +1,7 @@
 # ISF_add_ons
 
-Listed below all the features that are alrdeay or will
-be impleted in this repository:
+Listed below all the features that are already or will
+be implemented in this repository:
 
 ## ISF Batch run
 	
