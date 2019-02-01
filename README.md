@@ -33,8 +33,8 @@ against COG in order to assign COG categories to each sequence of each family.
 Ultimately, COG category enrichment statistics are computed for each family of genes.
 
 * Take COG enrichment statistics to cluster families of genes according to
-their functional annotations. Clustering is agglomerative and appropriate
-number of cluster is guided through consensus clustering. A shiny heatmap is 
+their functional annotations. Clustering is agglomerative and choice of the appropriate
+number of clusters is guided through consensus clustering. A shiny heatmap is 
 eventually plotted to summarize all these information.
 
 ## ISF to diversity visualisation
