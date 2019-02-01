@@ -23,7 +23,7 @@ and that can be taken as input by MultiTwin to construct bipartite graphs.
 ## ISF to phylogenetic tree
 
 * Given a sequence similarity network (SSN) built by ISF, boostrap the SSN,
-draw as many Minimal Spanning Trees (MST) as there are iterations, learn
+compute as many Minimal Spanning Trees (MST) as there are iterations, learn
 a consensus MST and turn it into a phylogenetic tree.
 
 ## ISF to functional annotations
