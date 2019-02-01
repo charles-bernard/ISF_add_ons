@@ -64,4 +64,4 @@ to compute several putative age for each family of genes.
 
 * For each sown family of genes, do a multiple sequence alignment, learn its HMM profile.
 Retrieve sequences based on this HMM profile. Include retrieved sequences to multiple alignment,
-update the HMM profile and repeat the process until no sequences are retrieved anymore.
+update the HMM profile and repeat the process until ???.
