@@ -50,7 +50,8 @@ to it for each family of genes. Turn systematically this information to a histog
 summarize the distribution of each family of genes along the lower-level tree. Scale the 
 histrogram independantly for each family (maximum value becomes 1, minimum 0). 
 Ultimately, use itol, to represent on the left, the annotated tree of life, and on the
-right, the corresponding distribution of each family of genes along the leaves of the tree.
+right, the corresponding distribution of each family of genes along the leaves of the tree
+(see [example 1](https://itol.embl.de/help.cgi#multibar) and [example 2](https://itol.embl.de/help.cgi#shapes)).
 The colorscale of each bar of the histograms would correspond to count values before scaling.
 
 ## ISF to putative age
