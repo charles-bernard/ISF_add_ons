@@ -40,7 +40,7 @@ eventually plotted to summarize all these information.
 ## ISF to diversity visualisation
 
 * Given a list of family of genes and a reference phylogenetic tree 
-(the tree of life), anchor each representative species of a family (step 2) to
+(the tree of life), anchor each representative species of a family (see ISF to MultiTwin) to
 a leaf of the tree. 
 
 * Collapse the comprehensive tree to a lower-level tree, optimal for visualization.
@@ -54,8 +54,8 @@ right, the corresponding distribution of each family of genes along the leaves o
 
 ## ISF to putative age
 
-* Given the reference tree, and the species anchored to its leaves (step 5), infer the evolutionary
-history using the different methodologies implemented by the software "count". This allows
+* Given the reference tree, and the species anchored to its leaves (see ISF to diversity visualisation), 
+infer the evolutionary history using the different methodologies implemented by the software "count". This allows
 to compute several putative age for each family of genes.  
 
 ## ISF with HMM instead of blast
