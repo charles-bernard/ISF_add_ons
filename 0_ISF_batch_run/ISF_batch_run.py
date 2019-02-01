@@ -40,7 +40,7 @@ def create_logger(name, filename):
     return logger
 
 
-def create_command(args):
+def create_command(args, curr_fa, curr_db):
     cmd = 'python3.5 \"%s\" -query \"%s\" -db_fa \"%s\" '\
           '-th %s -run %s -pident_thr %s -cov_thr %s -eval_thr %s '\
           '-min_size %s -max_size %s -test_all_chain %s '\
@@ -135,7 +135,7 @@ for i in range(0, len(fa_paths)):
     current_log = create_logger('current_log', os.path.join(curr_outdir, "ISF.log"))
 
     # define ISF command line
-    cmd = create_command(args)
+    cmd = create_command(args, curr_fa, curr_db)
     current_log.info(cmd)
 
     # run isf, compute time elapsed, and log everything !
