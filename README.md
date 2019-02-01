@@ -12,7 +12,7 @@ input family of genes (seeds)
 
 * Given a list of family of genes aggregated by ISF,
 parse the fasta file that comprise all the sequences 
-of each family with the aim to retrieve all species-sequence
+of each family with the aim to retrieve the species-sequence
 relationships of families.
 This allows to associate to each family name a list of
 representative species.
@@ -29,12 +29,12 @@ a consensus MST and turn it into a phylogenetic tree.
 ## ISF to functional annotations
 
 * Given a list of family of genes, run rpsblast with each family as query
-against COG in order to assign COG categories to each sequence of each family.
+against COG database in order to assign COG categories to each sequence of each family.
 Ultimately, COG category enrichment statistics are computed for each family of genes.
 
 * Take COG enrichment statistics to cluster families of genes according to
 their functional annotations. Clustering is agglomerative and choice of the appropriate
-number of clusters is guided through consensus clustering. A shiny heatmap is 
+number of clusters is guided through either consensus clustering or gap statistics. A shiny heatmap is 
 eventually plotted to summarize all these information.
 
 ## ISF to diversity visualisation
@@ -47,16 +47,16 @@ a leaf of the tree.
 (For istance, leaves that used to correspond to species would be collapsed into leaves that reflect phylums).
 For each collapsed group of leaves, compute the number of species that have been anchored
 to it for each family of genes. Turn systematically this information to a histogram that
-summarize the distribution of each family of genes along the lower-level tree. Scale the 
+summarize the distribution of a family of genes along the lower-level tree. Scale the 
 histrogram independantly for each family (maximum value becomes 1, minimum 0). 
 Ultimately, use itol, to represent on the left, the annotated tree of life, and on the
-right, the corresponding distribution of each family of genes along the leaves of the tree
+right, the corresponding distribution of each family of genes along it
 (see [example 1](https://itol.embl.de/help.cgi#multibar) and [example 2](https://itol.embl.de/help.cgi#shapes)).
 The colorscale of each bar of the histograms would correspond to count values before scaling.
 
 ## ISF to putative age
 
-* Given the reference tree, and the species anchored to its leaves (see ISF to diversity visualisation), 
+* Given the reference tree, and the representative species of a gene family anchored to its leaves (see ISF to diversity visualisation), 
 infer the evolutionary history using the different methodologies implemented by the software "count". This allows
 to compute several putative age for each family of genes.  
 
