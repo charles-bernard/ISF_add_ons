@@ -51,6 +51,7 @@ summarize the distribution of each family of genes along the lower-level tree. S
 histrogram independantly for each family (maximum value becomes 1, minimum 0). 
 Ultimately, use itol, to represent on the left, the annotated tree of life, and on the
 right, the corresponding distribution of each family of genes along the leaves of the tree.
+The colorscale of each bar of the histograms would correspond to count values before scaling.
 
 ## ISF to putative age
 
