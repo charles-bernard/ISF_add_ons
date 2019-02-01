@@ -17,7 +17,7 @@ relationships of families.
 This allows to associate to each family name a list of
 representative species.
 
-* Create a tabular file whose primary key is (family_name, species_name)
+* Create a tabular file whose key is (family_name, species_name)
 and that can be taken as input by MultiTwin to construct bipartite graphs.
 
 ## ISF to phylogenetic tree
