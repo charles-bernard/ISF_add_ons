@@ -108,7 +108,7 @@ for i in range(0, 2):
 
                 # (id is identified as the string that comes straight after the ">" char)
                 id = list()
-                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-.])+', header)
+                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-_.])+', header)
                 tmp_id = re.split(r' *>', tmp_id.group(0))
                 curr_id = tmp_id[1]
 
