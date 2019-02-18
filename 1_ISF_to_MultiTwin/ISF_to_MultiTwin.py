@@ -9,23 +9,37 @@
 
 import argparse
 import os
+import logging
 import re
+import sys
+import tempfile
+import subprocess
+
+def redirect_msg(msg, level = "info"):
+    print(msg)
+    if level == "info":
+        logging.info(msg)
+
 
 parser = argparse.ArgumentParser(
-    description='This script retrieves the list of the unique species which possess ' 
-                'at least one gene/protein of the family of genes extended by ISF and '
-                'summarizes this information in a tabular file. '
-                'Several of such tabular files, thus representative of different family of genes, '
-                'may eventually be concatenated together to serve as input for '
-                'https://github.com/TeamAIRE/MultiTwin to construct bipartite graphs. '
+    description='For an ensemble of families of genes, this script associates to each family name a list of'
+                ' representatives species.'
+                ' This information for all families is eventually summarized as a tabular file that can serve as'
+                ' input for https://github.com/TeamAIRE/MultiTwin to construct bipartite graphs.'
                 'Additionally, this script summarizes the species-sequence relationship(s) '
                 'of each and every sequence returned by ISF as a tabular file of the same '
                 'structure as above. This might be useful if ISF was run against nr, because '
                 'one sequence might be identical in many different species.')
-parser.add_argument('-d', dest='isf_dir', type=str,
-                    help='specify the path to the ISF output directory')
-parser.add_argument('--family_name', dest="family_name", type=str,
-                    help='specify the name of the gene family whose retrieved sequences belong to')
+parser.add_argument('-i', '--input_dir', dest='fa_dir', type=str,
+                    help='specify the path to the directory '
+                         'that contains several gene families in fasta (the filename of '
+                         'each fasta will be used to name the corresponding gene family)')
+parser.add_argument('-o', '--output_dir', dest="output_dir", type=str,
+                    help='specify the path to the output directory')
+parser.add_argument('-p', action="store_true", default=True,
+                    help='whether families correspond to proteins')
+parser.add_argument('-n', action="store_true", default=True,
+                    help='whether families correspond to nucleotides')
 parser.add_argument('--consider_strains', dest="consider_strains", action='store_true', default=False,
                     help='tell the program that different strains of one species have to be '
                          'considered as as many different species (optional)')
@@ -35,110 +49,124 @@ parser.add_argument('--dictionary', dest='dictionary', type=str,
                          'description associated to each of these sequence ids, then you can specify its path '
                          'in order for the program to retrieve the corresponding sequence-species '
                          'relationship(s) (optional)')
-# parser.add_argument('--tx_db', dest="taxonomy_db", type=str,
-#                     help='specify the path to the \'fullnamelineage.dmp\' of the NCBI taxonomy database '
-#                     'in case you would like to substitute the name of the species by their corresponding '
-#                     'taxonomic id (optional)')
 args = parser.parse_args()
 
-######################################################################
-# Read the comprehensive list of fasta ###############################
-######################################################################
-seq_list = os.path.join(args.isf_dir, 'sequence_found_and_bases.faa')
-n_records = 0
-id = list()
-species = list()
+##########################################
+# SETUP ##################################
+##########################################
+# get the directory of the executing script
+script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 
-with open(seq_list, mode='r') as infile:
-    for line in infile:
-        # retrieve fasta header
-        header = re.search(r'^>.*$', line)
+# save the abspath of the output directory
+args.output_dir = os.path.abspath(args.output_dir)
 
-        if header:
-            header = header.group(0)
+# initialize logfile
+log_file = os.path.join(args.output_dir, 'logfile.log')
+if os.path.isfile(log_file):
+    os.remove(log_file)
+logging.basicConfig(filename=os.path.join(args.output_dir, 'logfile.log'), level=logging.DEBUG)
 
-            # get sequence id
-            # (identified as the string that comes straight after the ">" char)
-            tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-_.])+', header)
-            tmp_id = re.split(r' *>', tmp_id.group(0))
-            curr_id = tmp_id[1]
+# get family names and fill the list of paths to fasta
+fasta_files = list()
+family_names = list()
+dir_files = os.listdir(args.fa_dir)
+dir_files.sort()
+for dir_file in dir_files:
+    if re.search(r'\.fa(a)?(sta)?$', dir_file):
+        fasta_files.append(os.path.join(args.fa_dir, dir_file))
+        family_names.append(os.path.basename(dir_file).split(".")[0])
 
-            # if the species is not mentioned directly in the fasta header but inside a
-            # dictionary
-            if args.dictionary:
-                with open(args.dictionary, mode='r') as dic:
-                    for dic_line in dic:
-                        header = re.match(str(curr_id) + '.*$', dic_line)
-                        if header:
-                            break
-                dic.close()
-                header = header.group(0)
+# define output
+multi_twin_in = os.path.join(args.output_dir, "MultiTwin_input_file.tsv")
+comprehensive_output_dir = os.path.join(args.output_dir, "comprehensive_output")
+if not os.path.exists(comprehensive_output_dir):
+    os.makedirs(comprehensive_output_dir)
+
+# define dictionary of families.
+multi_twin_dict = dict()
+multi_twin_dict["id"] = dict()
+multi_twin_dict["species"] = dict()
+
+##########################################
+# JOB ####################################
+##########################################
+# for i in range(0, len(fasta_files)):
+for i in range(0, 2):
+    curr_fa = fasta_files[i]
+    curr_family = family_names[i]
+    multi_twin_dict["species"][curr_family] = list()
+    multi_twin_dict["id"][curr_family] = list()
+    redirect_msg("  * processing family %d/%d: %s" % (i+1, len(fasta_files), curr_family))
+
+    with open(fasta_files[i], mode="r") as f:
+
+        for line in f:
+
+            is_header = re.search(r'^>.*$', line)
+            if is_header:
+                header = is_header.group(0)
+
+                # (id is identified as the string that comes straight after the ">" char)
+                id = list()
+                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-.])+', header)
+                tmp_id = re.split(r' *>', tmp_id.group(0))
+                curr_id = tmp_id[1]
+
+                redirect_msg("    * processing id %s" % (curr_id))
+
+                curr_species = re.findall(r'\[.+\]', header)
+                if not curr_species:
+                    curr_species_name = subprocess.check_output(
+                        "efetch -db protein -id %s -format gpc \
+                         | egrep 'INSDSeq_organism' \
+                         | awk -F \"</?INSDSeq_organism>\" '{ printf($2); }'" % curr_id,
+                        shell=True)
+                    curr_species = ["[" + curr_species_name + "]"]
+
+                for j in range(0, len(curr_species)):
+                    if not args.consider_strains:
+                        # get rid of characters related to strains while adding exception for sp. cases
+                        if not re.match(r'\[[A-Z][^A-Z0-9.-]*?\]', curr_species[j]):
+                            curr_string = re.match(r'^\[[A-Z][a-z]+( |_)?(sp\. ?[^\]]*)?([A-Z]?[a-z]+( |_)?)?',
+                                                   curr_species[j])
+                            try:
+                                curr_species[j] = curr_string.group(0)
+                            except:
+                                curr_species[j] = curr_species[j]
+                    curr_species[j] = curr_species[j][1:-1].rstrip()
+                    id.append(curr_id)
+
+                redirect_msg("      found [%s]" % curr_species[0])
+
+                multi_twin_dict["species"][curr_family] = multi_twin_dict["species"][curr_family] + curr_species
+                multi_twin_dict["id"][curr_family] = multi_twin_dict["id"][curr_family] + id
+
+    f.close()
 
 
-            # retrieve all unique species listed in the header
-            # (identified as strings enclosed in brackets)
-            tmp_species = re.findall(r'\[[A-Z][a-z] ?.*?]', header)
+#############################################
+# OUTPUT ####################################
+#############################################
+with open(multi_twin_in, mode='w') as f1:
+    f1.write('#family_name\tspecies\n')
 
-            if not tmp_species:
-                curr_unique_species = list([''])
-            else:
-                if not args.consider_strains:
-                    for i in range(0, len(tmp_species)):
-                        # get rid of characters related to strains
-                        # while adding exception for sp. cases
-                        if not re.match(r'\[[A-Z][^A-Z0-9.-]*?\]', tmp_species[i]):
-                            curr_string = re.match(r'^\[[A-Z][a-z]+( |_)?(sp\. ?[^\]]*)?([A-Z]?[a-z]+( |_)?)?', tmp_species[i])
-                            curr_string = curr_string.group(0)
-                            tmp_species[i] = curr_string + ']'
-                for i in range(0, len(tmp_species)):
-                    curr_tmp_species = tmp_species[i]
-                    tmp_species[i] = curr_tmp_species[1:-1].rstrip()
-                curr_unique_species = list(set(tmp_species))
+    for i in range(0, len(fasta_files)):
+        curr_fa = fasta_files[i]
+        curr_family = family_names[i]
+        list_species = multi_twin_dict["species"][curr_family]
+        unique_species = sorted(set(list_species))
+        list_ids = multi_twin_dict["id"][curr_family]
 
-            species = species + curr_unique_species
-            # repeat sequence id as many times as there are related species
-            for i in range(0, len(curr_unique_species)):
-                id.append(curr_id)
-infile.close()
-unique_species = sorted(set(species))
+        for j in range(0, len(unique_species)):
+            if unique_species[j]:
+                f1.write('%s\t%s\n' % (curr_family, unique_species[j]))
 
-######################################################################
-# Write retrieved lists of species and ids into a tabular file #######
-######################################################################
-multi_twin_infile = os.path.join(args.isf_dir, args.family_name + '_MultiTwin_edges.csv')
-with open(multitwin_infile, mode='w') as multi_twin_outfile:
-    multi_twin_outfile.write('species\tgene_family\n')
-    for i in range(0, len(unique_species)):
-        if unique_species[i]:
-            multi_twin_outfile.write('%s\t%s\n' % (unique_species[i], args.family_name))
-multi_twin_outfile.close()
+        curr_file = os.path.join(comprehensive_output_dir, curr_family + 'species_seq_relationships.tsv')
+        with open(curr_file, mode='w') as f2:
+            f2.write('#id\tspecies\n')
+            for j in range(0, len(list_ids)):
+                f2.write('%s\t%s\n' % (list_ids[j], list_species[j]))
+        f2.close()
 
-spe_seq_file = os.path.join(args.isf_dir, args.family_name + 'species_seq_relationships.csv')
-with open(spe_seq_file, mode='w') as spe_seq_outfile:
-    spe_seq_outfile.write('species\tsequence_id\n')
-    for i in range(0, len(id)):
-        spe_seq_outfile.write('%s\t%s\n' % (species[i], id[i]))
-spe_seq_outfile.close()
+f1.close()
 
-######################################################################
-# Turn species name into tx id #######################################
-######################################################################
-# if args.taxonomy_db:
-#     print('You have chosen to convert species name to taxonomic id\n'
-#           'This may take a little while ...')
-#     multitwin_infile = os.path.join(args.isf_dir, 'MultiTwin_edges_with_txid.csv')
-#     with open(multitwin_infile, mode='w') as outfile:
-#         outfile.write('species\tgene_family\n')
-#         for i in range(0, len(unique_species)):
-#             with open(args.taxonomy_db, mode='r') as tx_file:
-#                 for line in tx_file:
-#                     fields = re.split('\t|\t', line)
-#                     curr_species = fields[2]
-#                     if curr_species == species[i]:
-#                         unique_species[i] = fields[0]
-#                         break
-#             tx_file.close()
-#             outfile.write('%s\t%s\n' % (unique_species[i], args.family_name))
-#             print('retrieve species %d / %d\r' % (i+1, len(unique_species)),
-#                   sep='', end='', flush=True)
-#     outfile.close()
