@@ -78,7 +78,7 @@ for dir_file in dir_files:
 
 # define output
 multi_twin_in = os.path.join(args.output_dir, "MultiTwin_input_file.tsv")
-comprehensive_output_dir = os.path.join(args.output_dir, "comprehensive_output")
+comprehensive_output_dir = os.path.join(args.output_dir, "species_sequences_relationships")
 if not os.path.exists(comprehensive_output_dir):
     os.makedirs(comprehensive_output_dir)
 
@@ -90,8 +90,7 @@ multi_twin_dict["species"] = dict()
 ##########################################
 # JOB ####################################
 ##########################################
-# for i in range(0, len(fasta_files)):
-for i in range(0, 2):
+for i in range(0, len(fasta_files)):
     curr_fa = fasta_files[i]
     curr_family = family_names[i]
     multi_twin_dict["species"][curr_family] = list()
@@ -108,7 +107,7 @@ for i in range(0, 2):
 
                 # (id is identified as the string that comes straight after the ">" char)
                 id = list()
-                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-_.])+', header)
+                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-.])+', header)
                 tmp_id = re.split(r' *>', tmp_id.group(0))
                 curr_id = tmp_id[1]
 
@@ -161,7 +160,7 @@ with open(multi_twin_in, mode='w') as f1:
             if unique_species[j]:
                 f1.write('%s\t%s\n' % (curr_family, unique_species[j]))
 
-        curr_file = os.path.join(comprehensive_output_dir, curr_family + 'species_seq_relationships.tsv')
+        curr_file = os.path.join(comprehensive_output_dir, curr_family + 'species_sequences_relationships.tsv')
         with open(curr_file, mode='w') as f2:
             f2.write('#id\tspecies\n')
             for j in range(0, len(list_ids)):
