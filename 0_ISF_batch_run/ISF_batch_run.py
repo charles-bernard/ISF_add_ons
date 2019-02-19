@@ -105,8 +105,10 @@ db_paths = read_list_of_paths(args.list_db)
 # Initialize logfile
 general_log = create_logger('general_log', os.path.join(args.output_dir, "ISF_batch.log"))
 # Create a summary directory that will eventually store all the gene families
-summary_dir = os.path.join(args.output_dir, "00_summary")
-os.makedirs(summary_dir, exist_ok=True)
+all_dir = os.path.join(args.output_dir, "00_summary_all_sequences")
+os.makedirs(all_dir, exist_ok=True)
+retrieve_dir = os.path.join(args.output_dir, "00_summary_only_retrieved_sequences")
+os.makedirs(retrieve_dir, exist_ok=True)
 
 #####################################################
 # BATCH RUN #########################################
@@ -159,9 +161,14 @@ for i in range(0, len(fa_paths)):
         general_log.info("Gene family successfully created in %s" %
                          time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
         # create a symbolic link of the comprehensive gene family into the summary directory
-        summary_files = glob(os.path.join(curr_outdir, "sequence_found_and_bases.faa*"))
-        for f in summary_files:
-            os.symlink(f, os.path.join(summary_dir, fa_name + os.path.splitext(f)[1]))
+        summary_all_files = glob(os.path.join(curr_outdir, "sequence_found_and_bases.faa*"))
+        for f in summary_all_files:
+            os.symlink(f, os.path.join(all_dir, fa_name + os.path.splitext(f)[1]))
+        # proceed likewise for retrieved sequences
+        summary_retrieved_files = glob(os.path.join(curr_outdir, "sequence_found.faa*"))
+        for f in summary_retrieved_files:
+            os.symlink(f, os.path.join(retrieve_dir, fa_name + os.path.splitext(f)[1]))
+
 
     sys.stdout.flush()
     current_log.handlers[0].close()
