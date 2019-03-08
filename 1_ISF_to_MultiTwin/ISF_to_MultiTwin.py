@@ -14,11 +14,36 @@ import re
 import sys
 import tempfile
 import subprocess
+from ete3 import *
+ncbi = NCBITaxa()
 
 def redirect_msg(msg, level = "info"):
     print(msg)
     if level == "info":
         logging.info(msg)
+
+
+def retrieve_lineages(species):
+    phylum = lineage = ""
+    try:
+        taxid = list(ncbi.get_name_translator([species]).values())[0][0]
+    except:
+        return ["", ""]
+
+    lineage_list = ncbi.get_lineage(taxid)
+    lineage = list(ncbi.get_taxid_translator([lineage_list[0]]).values())[0]
+    lineage_ranks_dict = ncbi.get_rank(lineage_list)
+    for i in range(1, len(lineage_list)):
+        curr_taxid = lineage_list[i]
+        curr_name = list(ncbi.get_taxid_translator([curr_taxid]).values())[0]
+        curr_rank = lineage_ranks_dict[curr_taxid]
+        if curr_rank == "phylum":
+            phylum = curr_name
+        lineage = lineage + '; ' + curr_name
+    if lineage == "{}":
+        return["", ""]
+    else:
+        return [lineage, phylum]
 
 
 parser = argparse.ArgumentParser(
@@ -36,11 +61,9 @@ parser.add_argument('-i', '--input_dir', dest='fa_dir', type=str,
                          'each fasta will be used to name the corresponding gene family)')
 parser.add_argument('-o', '--output_dir', dest="output_dir", type=str,
                     help='specify the path to the output directory')
-parser.add_argument('-p', action="store_true", default=True,
-                    help='whether families correspond to proteins')
-parser.add_argument('-n', action="store_true", default=True,
-                    help='whether families correspond to nucleotides')
-parser.add_argument('--consider_strains', dest="consider_strains", action='store_true', default=False,
+parser.add_argument('-l', dest="get_lineages", action="store_true", default=False,
+                    help='whether to output lineage of the species as well')
+parser.add_argument('--consider_strains', dest="consider_strains", action='store_true', default=True,
                     help='tell the program that different strains of one species have to be '
                          'considered as as many different species (optional)')
 parser.add_argument('--dictionary', dest='dictionary', type=str,
@@ -86,6 +109,9 @@ if not os.path.exists(comprehensive_output_dir):
 multi_twin_dict = dict()
 multi_twin_dict["id"] = dict()
 multi_twin_dict["species"] = dict()
+if args.get_lineages:
+    multi_twin_dict["lineage"] = dict()
+    multi_twin_dict["phylum"] = dict()
 
 ##########################################
 # JOB ####################################
@@ -107,22 +133,27 @@ for i in range(0, len(fasta_files)):
 
                 # (id is identified as the string that comes straight after the ">" char)
                 id = list()
-                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-.])+', header)
+                tmp_id = re.search(r'^> *([a-zA-Z]|[0-9]|[-._])+', header)
                 tmp_id = re.split(r' *>', tmp_id.group(0))
                 curr_id = tmp_id[1]
 
                 redirect_msg("    * processing id %s" % (curr_id))
 
                 curr_species = re.findall(r'\[.+\]', header)
+                if args.get_lineages:
+                    curr_lineages = list()
+                    curr_phylum = list()
+
                 if not curr_species:
                     curr_species_name = subprocess.check_output(
                         "efetch -db protein -id %s -format gpc \
                          | egrep 'INSDSeq_organism' \
                          | awk -F \"</?INSDSeq_organism>\" '{ printf($2); }'" % curr_id,
-                        shell=True)
-                    curr_species = ["[" + curr_species_name + "]"]
+                        shell=True).decode('utf-8')
+                    curr_species = curr_species_name
 
-                for j in range(0, len(curr_species)):
+                j = 0
+                while j < len(curr_species):
                     if not args.consider_strains:
                         # get rid of characters related to strains while adding exception for sp. cases
                         if not re.match(r'\[[A-Z][^A-Z0-9.-]*?\]', curr_species[j]):
@@ -134,6 +165,26 @@ for i in range(0, len(fasta_files)):
                                 curr_species[j] = curr_species[j]
                     curr_species[j] = curr_species[j][1:-1].rstrip()
                     id.append(curr_id)
+                    if args.get_lineages:
+                        try:
+                            tmp = multi_twin_dict["lineage"][curr_species[j]]
+                        except:
+                            lineage_out = retrieve_lineages(curr_species[j])
+
+                            if not lineage_out[0]:
+                                curr_species_name = subprocess.check_output(
+                                    "efetch -db protein -id %s -format gpc \
+                                     | egrep 'INSDSeq_organism' \
+                                     | awk -F \"</?INSDSeq_organism>\" '{ printf($2); }'" % curr_id,
+                                    shell=True).decode('utf-8')
+                                curr_species = [curr_species_name]
+                                j = 0
+                                lineage_out = retrieve_lineages(curr_species[0])
+                            multi_twin_dict["lineage"][curr_species[j]] = dict()
+                            multi_twin_dict["phylum"][curr_species[j]] = dict()
+                            multi_twin_dict["lineage"][curr_species[j]] = lineage_out[0]
+                            multi_twin_dict["phylum"][curr_species[j]] = lineage_out[1]
+                    j = j+1
 
                 redirect_msg("      found [%s]" % curr_species[0])
 
@@ -147,7 +198,10 @@ for i in range(0, len(fasta_files)):
 # OUTPUT ####################################
 #############################################
 with open(multi_twin_in, mode='w') as f1:
-    f1.write('#family_name\tspecies\n')
+    if not args.get_lineages:
+        f1.write('#family_name\tspecies\n')
+    else:
+        f1.write('#family_name\tspecies\tphylum\tlineage\n')
 
     for i in range(0, len(fasta_files)):
         curr_fa = fasta_files[i]
@@ -158,13 +212,26 @@ with open(multi_twin_in, mode='w') as f1:
 
         for j in range(0, len(unique_species)):
             if unique_species[j]:
-                f1.write('%s\t%s\n' % (curr_family, unique_species[j]))
+                if not args.get_lineages:
+                    f1.write('%s\t%s\n' % (curr_family, unique_species[j]))
+                else:
+                    f1.write('%s\t%s\t%s\t%s\n' % (curr_family, unique_species[j],
+                             multi_twin_dict["phylum"][unique_species[j]],
+                             multi_twin_dict["lineage"][unique_species[j]]))
 
         curr_file = os.path.join(comprehensive_output_dir, curr_family + 'species_sequences_relationships.tsv')
         with open(curr_file, mode='w') as f2:
-            f2.write('#id\tspecies\n')
+            if not args.get_lineages:
+                f2.write('#id\tspecies\n')
+            else:
+                f2.write('#family_name\tspecies\tphylum\tlineage\n')
             for j in range(0, len(list_ids)):
-                f2.write('%s\t%s\n' % (list_ids[j], list_species[j]))
+                if not args.get_lineages:
+                    f2.write('%s\t%s\n' % (list_ids[j], list_species[j]))
+                else:
+                    f2.write('%s\t%s\t%s\t%s\n' % (list_ids[j], list_species[j],
+                                                   multi_twin_dict["phylum"][list_species[j]],
+                                                   multi_twin_dict["lineage"][list_species[j]]))
         f2.close()
 
 f1.close()
