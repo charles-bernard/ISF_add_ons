@@ -1,4 +1,4 @@
-# ISF_add_ons
+# ISF_toolbox
 
 Listed below all the features that are already or will
 be implemented in this repository:
